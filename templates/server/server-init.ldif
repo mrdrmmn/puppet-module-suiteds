@@ -1,0 +1,97 @@
+<%-
+  config = scope.to_hash
+  config = scope.parent.to_hash if ! config.has_key?( 'servers' )
+-%>
+dn: cn=config
+objectClass: olcGlobal
+cn: config
+<% if config.has_key?( 'ldap_args_file' ) and config['ldap_args_file'] != :undef -%>
+olcArgsFile: "<%= config['ldap_args_file'] %>"
+<% end -%>
+<% if config.has_key?( 'ldap_pid_file' ) and config['ldap_pid_file'] != :undef -%>
+olcPidFile: <%= config['ldap_pid_file'] %>
+<% end -%>
+<% if config.has_key?( 'log_level' ) and config['log_level'] != :undef -%>
+olcLogLevel: <%= config['log_level'] %>
+<% end -%>
+<% if config.has_key?( 'ldap_tool_threads' ) and config['ldap_tool_threads'] != :undef -%>
+olcToolThreads: <%= config['ldap_tool_threads'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_verify_certs' ) and config['ssl_verify_certs'] != :undef -%>
+olcTLSVerifyClient: <%= config['ssl_verify_certs'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_cacert_file' ) and config['ssl_cacert_file'] != :undef -%>
+olcTLSCACertificateFile: <%= config['ssl_cacert_file'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_cacert_path' ) and config['ssl_cacert_path'] != :undef -%>
+olcTLSCACertificatePath: <%= config['ssl_cacert_path'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_cert_file' ) and config['ssl_cert_file'] != :undef -%>
+olcTLSCertificateFile: <%= config['ssl_cert_file'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_key_file' ) and config['ssl_key_file'] != :undef -%>
+olcTLSCertificateKeyFile: <%= config['ssl_key_file'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_cipher_suite' ) and config['ssl_cipher_suite'] != :undef -%>
+olcTLSCipherSuite: <%= config['ssl_cipher_suite'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_rand_file' ) and config['ssl_rand_file'] != :undef -%>
+olcTLSRandFile: <%= config['ssl_rand_file'] %>
+<% end -%>
+<% if config.has_key?( 'ssl_ephemeral_file' ) and config['ssl_ephemeral_file'] != :undef -%>
+olcTLSEphemeralDHParamFile: <%= config['ssl_ephemeral_file'] %>
+<% end -%>
+<% if config.has_key?( 'sasl_minssf' ) and config['sasl_minssf'] != :undef -%>
+olcLocalSSF: <%= config['sasl_minssf'] %>
+<% end -%>
+<%-
+sasl_secprops = Array.new()
+if config.has_key?( 'sasl_minssf' ) and config['sasl_minssf'] != :undef
+  sasl_secprops.push("minssf=#{config['sasl_minssf']}")
+end
+if config.has_key?( 'sasl_maxssf' ) and config['sasl_maxssf'] != :undef
+  sasl_secprops.push("maxssf=#{config['sasl_maxssf']}")
+end
+-%>
+<% if sasl_secprops.length  -%>
+olcSaslSecProps: <%= sasl_secprops.join(',') %>
+<% end -%>
+<% sid = 0 -%>
+<% scope.function_template( 'suiteds/generate-remote-uris.erb' ).split( /\s+/ ).each do |uri| -%>
+olcServerID: <%= sid += 1 %> <%= uri %>
+<% end -%>
+olcSecurity: ssf=0
+structuralObjectClass: olcGlobal
+
+dn: cn=module,cn=config
+objectClass: olcModuleList
+olcModuleLoad: back_hdb
+olcModuleLoad: syncprov
+structuralObjectClass: olcModuleList
+
+dn: olcBackend=hdb,cn=config
+objectClass: olcBackendConfig
+structuralObjectClass: olcBackendConfig
+
+dn: olcDatabase=config,cn=config
+objectClass: olcDatabaseConfig
+structuralObjectClass: olcDatabaseConfig
+olcAccess: to *
+  by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage
+  by * break
+olcRootDN: cn=config
+olcRootPW: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
+<% if config['servers'].length > 1 -%>
+<% sid = 0 -%>
+<% scope.function_template( 'suiteds/generate-remote-uris.erb' ).split( /\s+/ ).each do |uri| -%>
+olcSyncRepl: rid=<%= sid += 1 %> provider=<%= uri %> binddn="cn=config" bindmethod=simple
+  credentials=<%= config['admin_password'] %> searchbase="cn=config" type=refreshAndPersist
+  tls_reqcert=<%= config['ssl_verify_certs'] %> retry="5 5 300 5" timeout=1
+<% end -%>
+olcMirrorMode: TRUE
+
+dn: olcOverlay=syncprov,olcDatabase={0}config,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcSyncProvConfig
+olcOverlay: syncprov
+<% end -%>

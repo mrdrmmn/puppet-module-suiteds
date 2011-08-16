@@ -1,0 +1,11 @@
+<%-
+  config = scope.to_hash
+  config = scope.parent.to_hash if ! config.has_key?( 'server_nodes' )
+-%>
+SLAPD_LDAP="no"
+SLAPD_LDAPI="no"
+SLAPD_LDAPS="no"
+SLAPD_URLS="<%= scope.function_template( 'suiteds/generate-local-uris.erb' ) %>"
+SLAPD_SHUTDOWN_TIMEOUT=3
+SLAPD_ULIMIT_SETTINGS=""
+

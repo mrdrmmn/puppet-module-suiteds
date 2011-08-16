@@ -1,0 +1,5 @@
+dn: ou=Admin,dc=revmj,dc=com
+ou: Admin
+objectClass: organizationalUnit
+objectClass: top
+

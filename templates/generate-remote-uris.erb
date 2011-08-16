@@ -1,0 +1,39 @@
+<%=
+  config = scope.to_hash
+  config = scope.parent.to_hash if ! config.has_key?( 'servers' )
+
+  protocol  = config['ldap_default_protocol']
+  uris      = Array.new()
+
+  servers   = Array.new()
+  if config['servers'].kind_of? Array
+    servers.concat( config['servers'] )
+  else
+    servers.push( config['servers'] )
+  end
+
+  require 'resolv'
+  dns = Resolv.new()
+
+  servers.each do |server|
+    # We really don't want to use hostnames, but if we cannot lookup and ip
+    # for this host, we will.  Obviously things won't be quite right, but
+    # it makes sure we won't completely screw up replication ( I think ).
+    addr = dns.getaddress( server ).sort[0]
+    addr = server if( ! addr )
+
+    uri = "#{protocol}://"
+
+    if addr != ''
+      addr.sub!( /\//, '%2F' )
+    end
+    uri = "#{uri}#{addr}"
+
+    if config["#{protocol}_port"] != ''
+      uri = uri + ':' + config["#{protocol}_port"]
+    end
+    uri = "#{uri}/"
+    uris.push( uri )
+  end
+  uris.join(' ')
+-%>

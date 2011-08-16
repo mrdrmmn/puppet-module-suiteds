@@ -1,0 +1,2 @@
+<%- config = scope.parent.to_hash -%>
+<%= config['password'] -%>
