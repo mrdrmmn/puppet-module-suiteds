@@ -152,7 +152,6 @@ class suiteds::config::default {
     'access   :Access   :groupOfNames                                                                             :                 :         :                                   :one:                          ',
     'config   :Config   :                                                                                         :                 :         :                                   :one:                          ',
   ]
-  $ldap_access_groups = [ 'ops', 'ldap-admin' ]
   $host_access_groups = 'ops'
 
   # # # # # # # # # # # # # # # # # # # #
@@ -165,6 +164,30 @@ class suiteds::config::default {
   $krb_write_user = 'krb-write'
   $ldap_admin_user = 'ldap-admin'
   $ldap_bind_user  = 'ldap-bind'
+
+  $ldap_access_groups = [ 
+    'ldap-admin',
+    'everyone',
+  ]
+
+  # [0] - A "friendly" name for this entry. DO NOT CHANGE!
+  # [1] - The name of the access group associated with the friendly name.
+  # [2] - Comma separated list of roles that should be associated with the access group.
+  $ldap_roles = [
+    'ldap-admin:ldap-admin:ldap-admin',
+    'ldap-bind :ldap-bind :          ',
+    'krb-read  :krb-read  :          ',
+    'krb-write :krb-write :          ',
+    'everyone  :          :everyone  ',
+  ]
+
+  $ldap_acls = [
+    'all-manage:*       :manage',
+    'all-read  :*       :read  ',
+    'krb-write :kerberos:write ',
+    'krb-read  :kerberos:read  ',
+    'self-write:userPassword,shadowLastChange,krbPrincipalKey,userPKCS12',
+  ]
 
   # These variables will be modified by different portions of the config and
   # typically by the os specific portions.  They should not be manipulated

@@ -80,6 +80,13 @@ cn: <%= config['ldap_admin_user'] %>
 description: OpenLDAP Root Account
 userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
 
+dn: cn=<%= config['ldap_bind_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: <%= config['ldap_bind_user'] %>
+description: OpenLDAP Bind Account
+userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
+
 dn: cn=<%= config['krb_read_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: simpleSecurityObject
 objectClass: organizationalRole

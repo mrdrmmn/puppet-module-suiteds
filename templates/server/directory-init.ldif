@@ -38,20 +38,37 @@ olcAccess: to *
   by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage
   by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['admin_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> manage
   by * break
-olcAccess: to dn.subtree="<%= 'ou=' + map_hash['kerberos']['ou'] + ',' + base_dn %>"
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
-  by * none
 olcAccess: to attrs=userPassword,shadowLastChange,krbPrincipalKey,userPKCS12
   by ssf=<%= config['ssl_minimum'] %> self write
   by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
   by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
   by ssf=<%= config['ssl_minimum'] %> anonymous auth
   by * none
-olcAccess: to dn.base="" by ssf=<%= config['ssl_minimum'] %> * read
-olcAccess: to *
+olcAccess: to dn.one="<%= 'ou=' + map_hash['users']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> users read
+  by ssf=<%= config['ssl_minimum'] %> anonymous auth
+  by * none
+olcAccess: to dn.base="<%= 'ou=' + map_hash['users']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> users read
+  by ssf=<%= config['ssl_minimum'] %> anonymous auth
+  by * none
+olcAccess: to dn.one="<%= 'ou=' + map_hash['roles']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> users read
+  by ssf=<%= config['ssl_minimum'] %> anonymous auth
+  by * none
+olcAccess: to dn.base="<%= 'ou=' + map_hash['roles']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> users read
+  by ssf=<%= config['ssl_minimum'] %> anonymous auth
+  by * none
+olcAccess: to dn.subtree="<%= 'ou=' + map_hash['kerberos']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
+  by * none
+olcAccess: to dn.base="<%= base_dn %>" by ssf=<%= config['ssl_minimum'] %> * read
+olcAccess: to * 
   by ssf=<%= config['ssl_minimum'] %> self write
-  by ssf=<%= config['ssl_minimum'] %> * read
+  by ssf=<%= config['ssl_minimum'] %> users read
+  by * none
 olcDbConfig: set_cachesize 0 2097152 0
 olcDbConfig: set_lk_max_objects 1500
 olcDbConfig: set_lk_max_locks 1500

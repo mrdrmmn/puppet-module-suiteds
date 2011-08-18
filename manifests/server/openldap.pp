@@ -68,6 +68,7 @@ define suiteds::server::openldap (
   $krb_read_user   = $suiteds::config::krb_read_user
   $krb_write_user  = $suiteds::config::krb_write_user
   $ldap_admin_user = $suiteds::config::ldap_admin_user
+  $ldap_bind_user  = $suiteds::config::ldap_bind_user
 
   $ldap_srv_init_file = "${misc_path}/server-init.ldif"
   $ldap_srv_pop_file  = "${misc_path}/server-populate.ldif"
