@@ -1,3 +1,37 @@
-suiteds
+Authentication and authorizaton are typically not well managed.  At many
+companies, employees will have numerous passwords (and possibly usernames)
+that are all needed on a daily basis to do their jobs.  The results in a slew
+of bad practices such as:
 
-This is the suiteds module.
+* Writing down passwords.
+* Sharing passwords.
+* Never changing passwords.
+* Not fully removing access for an employee who leaves the company.
+
+Having a centralized authentication and authorization point makes all of these
+things less likely to occur.  Unfortunately, the amount of time and effort
+required to set this all up means that many companies don't do it or utilzed
+and expensive solution such as Active Directory.
+
+SuiteDS is a puppet module that aims to make setting up directory services as
+simple as possible.  Once complete, it will do all of the following:
+
+* Install and configure OpenLDAP with the needed schemas to play nicely with
+  different operating systems.  If you specify multiple hosts in the 'server'
+  array, it will configure them to do n-way multimaster replication.  The
+  memberof overlay is also used to allow us to easily restrict access based
+  on group membership.
+
+* Install and configure kerberos utilizing openldap to store it's data.  This
+  allows kerberos to be truely HA as all needed data is replicated to all of
+  the other servers.
+
+* Install and configure FreeRADIUS to allow integration with wireless access
+  points and other networking devices that need it without maintaining a
+  separate user data base.
+
+* Install and configure all the software necessary to make linux boxes play
+  nicely with these services.
+
+* Provide configuration information to Mac OS X clients to make configuring
+  them extremely easy.

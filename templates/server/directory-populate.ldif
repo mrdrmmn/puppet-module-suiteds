@@ -2,14 +2,22 @@
   config = scope.to_hash
   config = scope.parent.to_hash if ! config.has_key?( 'servers' )
 
+  map_hash = {}
+  config['ldap_map'].each do |line|
+    key, ou, desc, dbs, ns_off, ns_on, ldap_scope, filter = line.split( /:/ ).map{ |x| x.to_s.strip }
+    map_hash[key] = {
+      'ou'     => ou,
+      'desc'   => desc,
+      'dbs'    => dbs,
+      'ns_off' => ns_off,
+      'ns_on'  => ns_on,
+      'scope'  => ldap_scope,
+      'filter' => filter,
+    }
+  end
+
   require 'base64'
   require 'securerandom'
-
-  # Check to see if we are going to set up macosx specific bits.
-  macosx = 0;
-  config['db_mapping'].each do |line|
-    macosx = 1 if line.split( /\s*:\s*/ ).at( 0 ) == 'macosx'
-  end
 
   seed = 0
   if has_variable?("sshdsakey")
@@ -35,198 +43,182 @@ objectClass: organizationalUnit
 ou: <%= base_dn %>
 
 <%
-    dn_map = Hash.new
-    seen   = Hash.new
-    config['db_mapping'].each do |line|
-      key, ou = line.split( /\s*:\s*/ ).values_at( 0, 4 )
-      next if ! ou or ou == '' or seen.has_key?( ou )
-      seen[ ou ] = 1
+    map_hash.each do |key, value|
+      next if value['ou'] == ''
+      value['desc'] = value['ou'] if value['desc'] = ''
 -%>
-dn: ou=<%= ou %>,<%= base_dn %>
-ou: <%= ou %>
+dn: ou=<%= value['ou'] %>,<%= base_dn %>
+ou: <%= value['ou'] %>
 objectClass: organizationalUnit
 objectClass: top
+description: <%= value['desc'] %>
 
-<% if key == 'group' -%>
-dn: cn=<%= admin_user %>,ou=<%= ou %>,<%= base_dn %>
-cn: <%= admin_user %>
-gidNumber: 10000
-memberUid: 10000
-<%   if macosx == 1 -%>
-apple-group-realname: Directory Administrators
-apple-generateduid: <%= uuid %>
-objectClass: apple-group
-objectClass: extensibleObject
-<%   end -%>
-objectClass: top
-objectClass: posixGroup
+<%
+  if key == 'access'
+    config['ldap_access_groups'].to_a.flatten.each do |group|
+-%>
+dn: cn=<%= group %>,ou=<%= value['ou'] %>,<%= base_dn %>
+objectClass: groupOfNames
+cn: <%= group %>
+member: <%= base_dn %>
 
-<% elsif key == 'passwd' or key == 'shadow' -%>
-dn: uid=<%= admin_user %>,ou=<%= ou %>,<%= base_dn %>
-objectClass: inetOrgPerson
-objectClass: posixAccount
-objectClass: shadowAccount
-objectClass: organizationalPerson
-objectClass: apple-user
-objectClass: extensibleObject
-#objectClass: person         
-objectClass: top
-uid: <%= admin_user %>
-cn: Directory Administrator
-sn: Administrator
-givenName: Directory
-uidNumber: 10000
-gidNumber: 10000
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-loginShell: /bin/sh
-homeDirectory: /home/<%= admin_user %>
-title: Directory Administrator
-<% if macosx == 1 -%>
-apple-user-homeDirectory: /Users/<%= admin_user %>
-apple-generateduid: <%= uuid %>
-authAuthority: ;basic;
-<% end -%>
-
-<% elsif key == 'admin' -%>
-dn: cn=<%= config['krb_ldap_read'] %>,ou=<%= ou %>,<%= base_dn %>
+<%
+    end
+  elsif key == 'roles'
+-%>
+dn: cn=<%= config['admin_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
-cn: <%= config['krb_ldap_read'] %>
+cn: <%= config['admin_user'] %>
+description: OpenLDAP Admin Account
+userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
+
+dn: cn=<%= config['ldap_admin_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: <%= config['ldap_admin_user'] %>
+description: OpenLDAP Root Account
+userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
+
+dn: cn=<%= config['krb_read_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
+objectClass: simpleSecurityObject
+objectClass: organizationalRole
+cn: <%= config['krb_read_user'] %>
 description: Kerberos Read Account
 userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
 
-dn: cn=<%= config['krb_ldap_write'] %>,ou=<%= ou %>,<%= base_dn %>
+dn: cn=<%= config['krb_write_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: simpleSecurityObject
 objectClass: organizationalRole
-cn: <%= config['krb_ldap_write'] %>
+cn: <%= config['krb_write_user'] %>
 description: Kerberos Write Account
 userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
 
 <% elsif key == 'macosx' -%>
-dn: cn=accesscontrols,ou=<%= ou %>,<%= base_dn %>
+dn: cn=accesscontrols,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: accesscontrols
 
-dn: cn=certificateauthorities,ou=<%= ou %>,<%= base_dn %>
+dn: cn=certificateauthorities,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: certificateauthorities
 
-dn: cn=computers,ou=<%= ou %>,<%= base_dn %>
+dn: cn=computers,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: computers
 
-dn: cn=computer_groups,ou=<%= ou %>,<%= base_dn %>
+dn: cn=computer_groups,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: computer_groups
 
-dn: cn=computer_lists,ou=<%= ou %>,<%= base_dn %>
+dn: cn=computer_lists,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: computer_lists
 
-dn: cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: config
 
-dn: cn=locations,ou=<%= ou %>,<%= base_dn %>
+dn: cn=locations,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: locations
 
-dn: cn=machines,ou=<%= ou %>,<%= base_dn %>
+dn: cn=machines,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: machines
 
-dn: cn=neighborhoods,ou=<%= ou %>,<%= base_dn %>
+dn: cn=neighborhoods,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: neighborhoods
 
-dn: cn=people,ou=<%= ou %>,<%= base_dn %>
+dn: cn=people,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: people
 
-dn: cn=presets_computer_lists,ou=<%= ou %>,<%= base_dn %>
+dn: cn=presets_computer_lists,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: presets_computer_lists
 
-dn: cn=presets_groups,ou=<%= ou %>,<%= base_dn %>
+dn: cn=presets_groups,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: presets_groups
 
-dn: cn=preset_users,ou=<%= ou %>,<%= base_dn %>
+dn: cn=preset_users,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: preset_users
 
-dn: cn=printers,ou=<%= ou %>,<%= base_dn %>
+dn: cn=printers,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: printers
 
-dn: cn=augments,ou=<%= ou %>,<%= base_dn %>
+dn: cn=augments,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: augments
 
-dn: cn=autoserversetup,ou=<%= ou %>,<%= base_dn %>
+dn: cn=autoserversetup,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: autoserversetup
 
-dn: cn=filemakerservers,ou=<%= ou %>,<%= base_dn %>
+dn: cn=filemakerservers,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: filemakerservers
 
-dn: cn=resources,ou=<%= ou %>,<%= base_dn %>
+dn: cn=resources,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: resources
 
-dn: cn=places,ou=<%= ou %>,<%= base_dn %>
+dn: cn=places,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: places
 
-dn: cn=maps,ou=<%= ou %>,<%= base_dn %>
+dn: cn=maps,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
-cn: mapsts_computers,ou=<%= ou %>,<%= base_dn %>
+cn: mapsts_computers,ou=<%= value['ou'] %>,<%= base_dn %>
 cn: presets_computers
 
-dn: cn=presets_computer_groups,ou=<%= ou %>,<%= base_dn %>
+dn: cn=presets_computer_groups,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: presets_computer_groups
 
-dn: cn=automountMap,ou=<%= ou %>,<%= base_dn %>
+dn: cn=automountMap,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: automountMap
 
-dn: ou=<%= ou %>odconfig,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: ou=macosxodconfig,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: organizationalUnit
 ou: macosxodconfig
 description:: <%= Base64.encode64( scope.function_template( 'suiteds/server/macodconfig.xml' ) ).split("\n").join("") %>
 
-dn: cn=presets_computers,ou=<%= ou %>,<%= base_dn %>
+dn: cn=presets_computers,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: presets_computers
 
-dn: cn=CIFSServer,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=CIFSServer,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: CIFSServer
 
-dn: cn=mcx_cache,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=mcx_cache,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: mcx_cache
 
-dn: cn=ldapreplicas,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=ldapreplicas,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: ldapreplicas
 
-dn: cn=passwordserver,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=passwordserver,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: passwordserver
 
-dn: cn=macosxodpolicy,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=macosxodpolicy,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: macosxodpolicy
 
-dn: cn=CollabServices,cn=config,ou=<%= ou %>,<%= base_dn %>
+dn: cn=CollabServices,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: apple-configuration
 objectClass: top
 cn: CollabServices

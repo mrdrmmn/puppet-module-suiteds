@@ -2,19 +2,19 @@
   config = scope.to_hash
   config = scope.parent.to_hash if ! config.has_key?( 'servers' )
 
-  admin_ou = ""
-  krb_ou   = ""
-  config['db_mapping'].each do |line|
-    key, ou = line.split( /\s*:\s*/ ).values_at( 0, 4 )
-    if key == 'admin'
-      admin_ou = 'ou=' + ou + ','
-    elsif key == 'kerberos'
-      krb_ou = 'ou=' + ou + ','
-    end
+  map_hash = {}
+  config['ldap_map'].each do |line|
+    key, ou, desc, dbs, ns_off, ns_on, ldap_scope, filter = line.split( /:/ ).map{ |x| x.to_s.strip }
+    map_hash[key] = {
+      'ou'     => ou,
+      'desc'   => desc,
+      'dbs'    => dbs,
+      'ns_off' => ns_off,
+      'ns_on'  => ns_on,
+      'scope'  => ldap_scope,
+      'filter' => filter,
+    }
   end
-
-  krb_write_cn = 'cn=' + config['krb_ldap_write'] + ',' + admin_ou
-  krb_read_cn  = 'cn=' + config['krb_ldap_read']  + ',' + admin_ou
 
   db_id = 0
   [ config['domains'] ].flatten.each do |domain|
@@ -30,18 +30,22 @@ olcDbDirectory: <%= directory %>
 olcSuffix: <%= base_dn %>
 olcRootDN: <%= base_dn %>
 olcRootPW: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
+#olcSaslHost: <%= fqdn %>
+#olcSaslRealm: <%= domain.upcase %>
+#olcAuthzRegexp: "uid=([^/]*),cn=<%= domain %>,cn=GSSAPI,cn=auth" "uid=$1,ou=<%= map_hash['users']['ou'] + ',' + base_dn %>"
+#olcAuthzRegexp: "uid=host/([^/]*),cn=<%= domain %>,cn=gssapi,cn=auth" "cn=$1,ou=<%= map_hash['hosts']['ou'] + ',' + base_dn %>"
 olcAccess: to *
   by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage
-  by dn.exact=cn=<%= config['admin_user'] %>,<%= base_dn %> manage
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['admin_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> manage
   by * break
-olcAccess: to dn.subtree="<%= krb_ou + base_dn %>"
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= krb_write_cn %><%= base_dn %> write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= krb_read_cn %><%= base_dn %> read
+olcAccess: to dn.subtree="<%= 'ou=' + map_hash['kerberos']['ou'] + ',' + base_dn %>"
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
   by * none
 olcAccess: to attrs=userPassword,shadowLastChange,krbPrincipalKey,userPKCS12
   by ssf=<%= config['ssl_minimum'] %> self write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= krb_write_cn %><%= base_dn %> write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= krb_read_cn %><%= base_dn %> read
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
   by ssf=<%= config['ssl_minimum'] %> anonymous auth
   by * none
 olcAccess: to dn.base="" by ssf=<%= config['ssl_minimum'] %> * read
@@ -52,14 +56,11 @@ olcDbConfig: set_cachesize 0 2097152 0
 olcDbConfig: set_lk_max_objects 1500
 olcDbConfig: set_lk_max_locks 1500
 olcDbConfig: set_lk_max_lockers 1500
-olcDbIndex: uid,gidNumber,sambasid,uidNumber pres,eq
-olcDbIndex: cn,sn,mail,givenName,memberUid pres,eq,approx,sub
+olcDbIndex: uid,gidNumber,sambasid,uidNumber,apple-generateduid,apple-group-memberguid,apple-ownerguid pres,eq
+olcDbIndex: cn,sn,mail,givenName,memberUid,apple-group-realname,apple-realname pres,eq,approx,sub
 olcDbIndex: objectClass,entryCSN,entryUUID,ou eq
-olcDbIndex: apple-group-realname,apple-realname pres,eq,approx,sub
-olcDbIndex: apple-generateduid,apple-group-memberguid,apple-ownerguid pres,eq
 olcDbIndex: krbPrincipalName eq,pres,sub
-
-
+olcDbIndex: memberOf eq,pres
 <% if config['servers'].length > 1 -%>
 <% sid = 0 -%>
 <% scope.function_template( 'suiteds/generate-remote-uris.erb' ).split( /\s+/ ).each do |uri| -%>
@@ -76,6 +77,17 @@ objectClass: olcOverlayConfig
 objectClass: olcSyncProvConfig
 olcOverlay: syncprov
 <% end -%>
+
+dn: olcOverlay=memberof,olcDatabase={<%= db_id %>}hdb,cn=config
+objectClass: olcOverlayConfig
+objectClass: olcMemberOf
+objectClass: olcConfig
+olcMemberOfRefInt: TRUE
+olcMemberOfGroupOC: groupOfNames
+olcMemberOfDangling: error
+olcMemberOfMemberAD: member
+olcMemberOfMemberOfAD: memberOf
+olcOverlay: memberof
 <%
   end
 -%>

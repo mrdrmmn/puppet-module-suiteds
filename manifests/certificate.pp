@@ -28,15 +28,18 @@ define suiteds::certificate (
       # signed certificate as long as the files are empty.
       if( ! defined( File[ $cert_file ] ) ) {
         file{ $cert_file:
+          ensure  => $ensure,
           notify  => Exec[ $name ],
         }
       }
       if( ! defined( File[ $key_file ] ) ) {
         file{ $key_file:
+          ensure  => $ensure,
           notify  => Exec[ $name ],
         }
       }
       exec{ $name:
+        path        => $exec_path,
         command     => $exec_create,
         unless      => $exec_exists,
         refreshonly => 'true',

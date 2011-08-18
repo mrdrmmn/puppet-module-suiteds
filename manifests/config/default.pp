@@ -101,26 +101,59 @@ class suiteds::config::default {
   # [4] - The OU where the data can be found in your ldap directory.
   # [5] - The key used to reference the db in ldap.conf.
   # [6] - The key used to reference the db in ldapscripts.conf.
+  # [7] - Description of the ou.  I am setting it to be a list of object
+  #       classes sub-entries should probably have.
   $db_mapping  = [
-    'passwd    :passwd    :compat   :compat ldap [NOTFOUND=return] db   :People   :nss_base_passwd    :USUFFIX',
-    'shadow    :shadow    :compat   :compat ldap [NOTFOUND=return] db   :People   :nss_base_shadow    :',
-    'group     :group     :compat   :compat ldap [NOTFOUND=return] db   :Group    :nss_base_group     :GSUFFIX',
-    'hosts     :hosts     :files dns:files dns ldap [NOTFOUND=return] db:Hosts    :nss_base_hosts     :',
-    'services  :services  :db files :ldap [NOTFOUND=return] db files    :Services :nss_base_services  :',
-    'networks  :networks  :files    :ldap [NOTFOUND=return] files       :Networks :nss_base_networks  :',
-    'netmasks  :netmasks  :files    :ldap [NOTFOUND=return] files       :Networks :nss_base_netmasks  :',
-    'protocols :protocols :db files :ldap [NOTFOUND=return] db files    :Protocols:nss_base_protocols :',
-    'rpc       :rpc       :db files :ldap [NOTFOUND=return] db files    :Rpc      :nss_base_rpc       :',
-    'ethers    :ethers    :db files :ldap [NOTFOUND=return] db files    :Ethers   :nss_base_ethers    :',
-    'bootparams:bootparams:files    :ldap [NOTFOUND=return] files       :Ethers   :nss_base_bootparams:',
-    'aliases   :aliases   :files    :ldap [NOTFOUND=return] files       :Aliases  :nss_base_aliases   :',
-    'netgroup  :netgroup  :nis      :ldap [NOTFOUND=return] nis         :Netgroup :nss_base_netgroup  :',
-    'machines  :          :         :                                   :Machines :                   :MSUFFUX',
-    'mounts    :          :         :                                   :Mounts   :                   :',
-    'macosx    :          :         :                                   :MacOSX   :                   :',
-    'admin     :          :         :                                   :Admin    :                   :       ',
-    'kerberos  :          :         :                                   :Kerberos :                   :       ',
+    'passwd    :passwd    :compat   :compat ldap [NOTFOUND=return] db   :People   :nss_base_passwd    :USUFFIX:inetOrgPerson,posixAccount,shadowAccount,organizationalPerson,apple-user,extensibleObject,top',
+    'shadow    :shadow    :compat   :compat ldap [NOTFOUND=return] db   :People   :nss_base_shadow    :       :inetOrgPerson,posixAccount,shadowAccount,organizationalPerson,apple-user,extensibleObject,top',
+    'group     :group     :compat   :compat ldap [NOTFOUND=return] db   :Group    :nss_base_group     :GSUFFIX:posixGroup,apple-group,extensibleObject,top',
+    'hosts     :hosts     :files dns:files dns ldap [NOTFOUND=return] db:Hosts    :nss_base_hosts     :       :device,ipHost,NisKeyObject,top',
+    'services  :services  :db files :ldap [NOTFOUND=return] db files    :Services :nss_base_services  :       :ipService,top',
+    'networks  :networks  :files    :ldap [NOTFOUND=return] files       :Networks :nss_base_networks  :       :ipNetwork,top',
+    'netmasks  :netmasks  :files    :ldap [NOTFOUND=return] files       :Networks :nss_base_netmasks  :       :ipNetwork,top',
+    'protocols :protocols :db files :ldap [NOTFOUND=return] db files    :Protocols:nss_base_protocols :i      :ipProtocol,top',
+    'rpc       :rpc       :db files :ldap [NOTFOUND=return] db files    :Rpc      :nss_base_rpc       :       :oncRpc,top',
+    'ethers    :ethers    :db files :ldap [NOTFOUND=return] db files    :Ethers   :nss_base_ethers    :       :device,bootableDevice,ieee802Device,top',
+    'bootparams:bootparams:files    :ldap [NOTFOUND=return] files       :Ethers   :nss_base_bootparams:       :device,bootableDevice,ieee802Device,top',
+    'aliases   :aliases   :files    :ldap [NOTFOUND=return] files       :Aliases  :nss_base_aliases   :       :mailgroup,top',
+    'netgroup  :netgroup  :nis      :ldap [NOTFOUND=return] nis         :Netgroup :nss_base_netgroup  :       :nisNetgroup,top',
+    'machines  :          :         :                                   :Machines :                   :MSUFFUX:',
+    'mounts    :          :         :                                   :Mounts   :                   :       :',
+    'macosx    :          :         :                                   :MacOSX   :                   :       :',
+    'admin     :          :         :                                   :Admin    :                   :       :simpleSecurityObject,organizationalRole,top',
+    'kerberos  :          :         :                                   :Kerberos :                   :       :',
+    'access    :          :         :                                   :Access   :                   :       :groupOfNames,top',
   ]
+
+  # [0] - A "friendly" name for this entry. DO NOT CHANGE!
+  # [1] - The OU where the data can be found in you ldap directory. 
+  # [2] - Description of the OU. I am setting it to be a list of object classes sub entries should probably have.
+  # [3] - The nsswitch db names that need to be associated with the ou.
+  # [4] - The method(s) used by nsswitch to look up data when ldap is disabled.
+  # [5] - The method(s) used by nsswitch to look up data when ldap is enabled.
+  # [6] - The scope applied by nsswitch.
+  # [7] - The filter applied by nsswitch.  It must be contained in parenthesis.
+  $ldap_map = [
+    'users    :People   :inetOrgPerson,posixAccount,shadowAccount,organizationalPerson,apple-user,extensibleObject:passwd,shadow    :compat   :compat ldap [NOTFOUND=return] db   :one:(objectClass=posixAccount)',
+    'groups   :Group    :posixGroup,apple-group,extensibleObject                                                  :group            :compat   :compat ldap [NOTFOUND=return] db   :one:(objectClass=posixGroup)  ',
+    'hosts    :Hosts    :device,ipHost,NisKeyObject                                                               :hosts            :files dns:files dns ldap [NOTFOUND=return] db:one:                          ',
+    'services :Services :ipService                                                                                :services         :db files :ldap [NOTFOUND=return] db files    :one:                          ',
+    'networks :Networks :ipNetwork                                                                                :networks,netmasks:files    :ldap [NOTFOUND=return] files       :one:                          ',
+    'protocols:Protocols:ipProtocol                                                                               :protocols        :db files :ldap [NOTFOUND=return] db files    :one:                          ',
+    'rpc      :Rpc      :oncRpc                                                                                   :rpc              :db files :ldap [NOTFOUND=return] db files    :one:                          ',
+    'ethers   :Ethers   :device,bootableDevice,ieee802Device                                                      :ethers,bootparams:db files :ldap [NOTFOUND=return] db files    :one:                          ',
+    'aliases  :Aliases  :mailgroup                                                                                :aliases          :files    :ldap [NOTFOUND=return] files       :one:                          ',
+    'netgroup :Netgroup :nisNetgroup                                                                              :netgroup         :nis      :ldap [NOTFOUND=return] db nis      :one:                          ',
+    'machines :Machines :                                                                                         :                 :         :                                   :one:                          ',
+    'mounts   :Mounts   :                                                                                         :                 :         :                                   :one:                          ',
+    'macosx   :MacOSX   :organizationalUnit                                                                       :                 :         :                                   :one:                          ',
+    'kerberos :Kerberos :                                                                                         :                 :         :                                   :one:                          ',
+    'roles    :Roles    :simpleSecurityObject,organizationalRole                                                  :                 :         :                                   :one:                          ',
+    'access   :Access   :groupOfNames                                                                             :                 :         :                                   :one:                          ',
+    'config   :Config   :                                                                                         :                 :         :                                   :one:                          ',
+  ]
+  $ldap_access_groups = [ 'ops', 'ldap-admin' ]
+  $host_access_groups = 'ops'
 
   # # # # # # # # # # # # # # # # # # # #
   # Kerberos specific values
@@ -128,8 +161,10 @@ class suiteds::config::default {
   $krb5_port      = '88'
   $krb5adm_port   = '749'
   $krb4_port      = '750'
-  $krb_ldap_read  = 'krb-read'
-  $krb_ldap_write = 'krb-write'
+  $krb_read_user  = 'krb-read'
+  $krb_write_user = 'krb-write'
+  $ldap_admin_user = 'ldap-admin'
+  $ldap_bind_user  = 'ldap-bind'
 
   # These variables will be modified by different portions of the config and
   # typically by the os specific portions.  They should not be manipulated

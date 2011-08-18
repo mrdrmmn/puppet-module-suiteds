@@ -1,4 +1,17 @@
-define suiteds::server (
+# Define: suiteds::client
+#
+# This module manages suiteds::client
+#
+# Parameters:
+#
+# Actions:
+#
+# Requires:
+#
+# Sample Usage:
+#
+# [Remember: No empty lines between comments and class definition]
+define suiteds::client (
   $ensure                = $suiteds::config::ensure,
   $servers               = $suiteds::config::servers,
   $domains               = $suiteds::config::domains,
@@ -45,48 +58,15 @@ define suiteds::server (
 ) {
   # Check to see if we have been called previously by utilizing as dummy
   # resource.
-  if( defined( Suiteds::Dummy[ 'suiteds::server' ] ) ) {
-    fail( 'The "suiteds::server" define has already been called previously in your manifest!' )
+  if( defined( Suiteds::Dummy[ 'suiteds::client' ] ) ) {
+    fail( 'The "suiteds::client" define has already been called previously in your manifest!' )
   }
-  suiteds::dummy{ 'suiteds::server': }
+  suiteds::dummy{ 'suiteds::client': }
 
   # Include our config.
   include suiteds::config
 
-  # Make sure our paths are fully qualified.
-  $temp_config_path = $suiteds::config::config_path
-  case inline_template( '<%= temp_config_path.to_s.start_with?( "/" ) %>' ) {
-    'true':  { $config_path = $temp_config_path                       }
-    default: { $config_path = "${base_path}/${temp_config_path}" }
-  }
-  $temp_misc_path = $suiteds::config::misc_path
-  case inline_template( '<%= temp_misc_path.to_s.start_with?( "/" ) %>' ) {
-    'true':  { $misc_path = $temp_misc_path                       }
-    default: { $misc_path = "${base_path}/$temp_misc_path" }
-  }
-
-  $paths          = [ $base_path, $config_path, $misc_path ]
-  $root_user      = $suiteds::config::root_user
-  $root_group     = $suiteds::config::root_group
-
-  suiteds::certificate{ 'suiteds::server':
-    ensure       => $ensure,
-    owner        => $suiteds::config::ldap_user,
-    group        => $suiteds::config::ldap_group,
-    cert_file    => $ssl_cert_file,
-    key_file     => $ssl_key_file,
-    country      => $ssl_cert_country,
-    state        => $ssl_cert_state,
-    city         => $ssl_cert_city,
-    organization => $ssl_cert_organization,
-    department   => $ssl_cert_department,
-    domain       => $ssl_cert_domain,
-    email        => $ssl_cert_email,
-    exec_path    => $exec_path,
-    require      => Directory[ $paths ],
-  }
-
-  suiteds::server::openldap{ 'suiteds::server::openldap':
+  suiteds::client::openldap{ 'suiteds::client::openldap':
     ensure                => $ensure,
     servers               => $servers,
     domains               => $domains,
@@ -94,8 +74,6 @@ define suiteds::server (
     admin_user            => $admin_user,
     admin_password        => $admin_password,
     base_path             => $base_path,
-    config_path           => $config_path,
-    misc_path             => $misc_path,
     exec_path             => $exec_path,
     pam_min_uid           => $pam_min_uid,
     pam_max_uid           => $pam_max_uid,
@@ -120,49 +98,24 @@ define suiteds::server (
     ssl_cacert_path       => $ssl_cacert_path,
     ssl_cert_file         => $ssl_cert_file,
     ssl_key_file          => $ssl_key_file,
-    ssl_cipher_suite      => $ssl_cipher_suite,
-    require               => Suiteds::Certificate[ 'suiteds::server' ],
   }
-
-  suiteds::server::kerberos{ 'suiteds::server::kerberos':
+  suiteds::client::kerberos{ 'suiteds::client::kerberos':
     ensure                => $ensure,
     servers               => $servers,
     domains               => $domains,
     default_domain        => $default_domain,
-    admin_user            => $admin_user,
-    admin_password        => $admin_password,
-    base_path             => $base_path,
-    config_path           => $config_path,
-    misc_path             => $misc_path,
-    exec_path             => $exec_path,
-    pam_min_uid           => $pam_min_uid,
-    pam_max_uid           => $pam_max_uid,
-    log_level             => $log_level,
-
-    ldap_protocols        => $ldap_protocols,
-    ldap_default_protocol => $ldap_default_protocol,
-    ldap_version          => $ldap_version,
-    ldap_port             => $ldap_port,
-    ldaps_port            => $ldaps_port,
-    search_timelimit      => $search_timelimit,
-    bind_timelimit        => $bind_timelimit,
-    idle_timelimit        => $idle_timelimit,
-
-    ssl_mode              => $ssl_mode,
-    ssl_minimum           => $ssl_minimum,
-    ssl_verify_certs      => $ssl_verify_certs,
     krb5_port             => $krb5_port,
     krb5adm_port          => $krb5adm_port,
-    krb4_port             => $krb4_port,
-    require               => Suiteds::Server::Openldap[ 'suiteds::server::openldap' ],
+    krb4_port             => $config_krb4_port,
   }
 
-  directory{ $paths:
-    ensure  => $ensure,
-    mode    => '0755',
-    recurse => 'true',
-    inherit => 'false',
-    owner   => $root_user,
-    group   => $root_group,
+  case $ensure {
+    'present','installed': {
+    }
+    'absent','removed','purged': {
+    }
+    default: {
+      fail( "'$config_ensure' is not a valid value for 'ensure'" )
+    }
   }
 }

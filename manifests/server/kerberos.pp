@@ -37,55 +37,24 @@ define suiteds::server::kerberos (
   }
   suiteds::dummy{ 'suiteds::server::kerberos': }
 
-  # Include our config.
-  include suiteds::config
-
+  # Make sure our paths are fully qualified.
   $temp_krb_path = $suiteds::config::krb_path
   case inline_template( '<%= temp_krb_path.to_s.start_with?( "/" ) %>' ) {
-    'true':  { $krb_path = $temp_krb_path                }
+    'true':  { $krb_path = $temp_krb_path                       }
     default: { $krb_path = "${base_path}/$temp_krb_path" }
   }
+
+  # Include our config.
+  include suiteds::config
 
   $packages       = $suiteds::config::krb_server_packages
   $services       = $suiteds::config::krb_server_services
   $configs        = $suiteds::config::krb_server_configs
   $root_user      = $suiteds::config::root_user
   $root_group     = $suiteds::config::root_group
-  $db_mapping     = $suiteds::config::db_mapping
-  $krb_ldap_read  = $suiteds::config::krb_ldap_read
-  $krb_ldap_write = $suiteds::config::krb_ldap_write
-
-  case $ensure {
-    'present': {
-      $file_ensure = $ensure
-
-      package{ $packages:
-        ensure  => $ensure,
-        require => Directory[ $krb_path ],
-      }
-
-      suiteds::toggle{ $configs:
-        ensure  => $ensure,
-        require => Package[ $packages ],
-        #before  => Suiteds::Server::Kerberos::Realm[ $domains ],
-      }
-
-      #suiteds::server::kerberos::realm{ $domains:
-      #}
-
-      service{ $services:
-        ensure  => 'running',
-        enable  => 'true',
-        #require => Suiteds::Server::Kerberos::Realm[ $domains ],
-      }
-    }
-    'absent','purged': {
-      $file_ensure = 'absent'
-    }
-    default: {
-      fail( "'$ensure' is not a valid value for 'ensure'" )
-    }
-  }
+  $ldap_map       = $suiteds::config::ldap_map
+  $krb_read_user  = $suiteds::config::krb_read_user
+  $krb_write_user = $suiteds::config::krb_write_user
 
   directory{ $krb_path:
     ensure  => $ensure,
@@ -93,5 +62,49 @@ define suiteds::server::kerberos (
     owner   => $root_user,
     group   => $root_group,
     mode    => 0700,
+  }
+
+  package{ $packages:
+    ensure  => $ensure,
+    require => Directory[ $krb_path ],
+  }
+
+  suiteds::toggle{ $configs:
+    ensure  => $ensure,
+    require => Package[ $packages ],
+    before  => Suiteds::Server::Kerberos::Realm[ $domains ],
+  }
+
+  suiteds::server::kerberos::realm{ $domains:
+    ensure         => $ensure,
+    user           => $root_user,
+    group          => $root_group,
+    krb_path       => $krb_path,
+    admin_password => $admin_password,
+    exec_path      => $exec_path
+  }
+
+  suiteds::server::kerberos::principal{ $domains:
+    ensure    => $ensure,
+    user      => $admin_user,
+    krb_path  => $krb_path,
+    exec_path => $exec_path,
+  }
+
+
+  case $ensure {
+    'present': {
+      service{ $services:
+        ensure  => 'running',
+        enable  => 'true',
+        require => Suiteds::Server::Kerberos::Realm[ $domains ],
+        before  => Suiteds::Server::Kerberos::Principal[ $domains ],
+      }
+    }
+    'absent','purged': {
+    }
+    default: {
+      fail( "'$ensure' is not a valid value for 'ensure'" )
+    }
   }
 }

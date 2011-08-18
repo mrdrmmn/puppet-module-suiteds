@@ -45,7 +45,8 @@ olcTLSEphemeralDHParamFile: <%= config['ssl_ephemeral_file'] %>
 olcLocalSSF: <%= config['sasl_minssf'] %>
 <% end -%>
 <%-
-sasl_secprops = Array.new()
+sasl_secprops = []
+#[ 'noplain', 'noactive', 'noanonymous' ]
 if config.has_key?( 'sasl_minssf' ) and config['sasl_minssf'] != :undef
   sasl_secprops.push("minssf=#{config['sasl_minssf']}")
 end
@@ -67,6 +68,7 @@ dn: cn=module,cn=config
 objectClass: olcModuleList
 olcModuleLoad: back_hdb
 olcModuleLoad: syncprov
+olcModuleLoad: memberof
 structuralObjectClass: olcModuleList
 
 dn: olcBackend=hdb,cn=config
@@ -94,4 +96,5 @@ dn: olcOverlay=syncprov,olcDatabase={0}config,cn=config
 objectClass: olcOverlayConfig
 objectClass: olcSyncProvConfig
 olcOverlay: syncprov
+
 <% end -%>

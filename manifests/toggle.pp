@@ -11,10 +11,10 @@ define suiteds::toggle (
 
   case $ensure {
     'present': {
-      $file_ensure = $ensure
+      $file_ensure = $present
     }
     'absent','purged': {
-      $file_ensure = 'absent'
+      $file_ensure = $absent
     }
     default: {
       fail( "'$ensure' is not a valid value for 'ensure'" )

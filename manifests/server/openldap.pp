@@ -56,16 +56,18 @@ define suiteds::server::openldap (
     default: { $ldap_pid_file = "${ldap_path}/${temp_ldap_pid_file}" }
   }
 
-  $packages       = $suiteds::config::ldap_server_packages
-  $services       = $suiteds::config::ldap_server_services
-  $ldap_user      = $suiteds::config::ldap_user
-  $ldap_group     = $suiteds::config::ldap_group
-  $root_user      = $suiteds::config::root_user
-  $root_group     = $suiteds::config::root_group
-  $ldap_schemas   = $suiteds::config::ldap_schemas
-  $db_mapping     = $suiteds::config::db_mapping
-  $krb_ldap_read  = $suiteds::config::krb_ldap_read
-  $krb_ldap_write = $suiteds::config::krb_ldap_write
+  $packages        = $suiteds::config::ldap_server_packages
+  $services        = $suiteds::config::ldap_server_services
+  $ldap_user       = $suiteds::config::ldap_user
+  $ldap_group      = $suiteds::config::ldap_group
+  $root_user       = $suiteds::config::root_user
+  $root_group      = $suiteds::config::root_group
+  $ldap_schemas    = $suiteds::config::ldap_schemas
+  $db_mapping      = $suiteds::config::db_mapping
+  $ldap_map        = $suiteds::config::ldap_map
+  $krb_read_user   = $suiteds::config::krb_read_user
+  $krb_write_user  = $suiteds::config::krb_write_user
+  $ldap_admin_user = $suiteds::config::ldap_admin_user
 
   $ldap_srv_init_file = "${misc_path}/server-init.ldif"
   $ldap_srv_pop_file  = "${misc_path}/server-populate.ldif"
@@ -80,6 +82,7 @@ define suiteds::server::openldap (
   ]
   $base_dn      = inline_template( '<%= domain.to_s.downcase.split( "." ).map{ |part| part = "dc=" + part }.join( "," ) %>' )
 
+  $exec_kill_slapd       = 'killall slapd || true'
   $exec_ldap_srv_init    = "slapadd -F '${ldap_path}/config' -d1 -n 0 -l '${ldap_srv_init_file}' 2>&1"
   $exec_ldap_srv_is_init = "slapcat -F '${ldap_path}/config' -H ldap:///cn=schema,cn=config"
 
@@ -106,32 +109,32 @@ define suiteds::server::openldap (
     owner   => $ldap_user,
     group   => $ldap_group,
     mode    => 0700,
-    require => Package[ $packages ],
   }
 
   case $ensure {
     'present': {
-      package{ $packages:
-        ensure  => $ensure,
-        before  => Service[ $services ],
-      }
       suiteds::server::mk_ldap_dir_paths{ [ 'config', $domains ]:
         ensure    => $ensure,
         user      => $ldap_user,
         group     => $ldap_group,
         mode      => 0700,
         base_path => $ldap_path,
-        require   => Package[ $packages ],
+        require   => Directory[ $ldap_path ],
+      }
+      package{ $packages:
+        ensure  => $ensure,
+        require => Suiteds::Server::Mk_ldap_dir_paths[ 'config', $domains ],
+        notify  => Exec[ $exec_kill_slapd ],
       }
       suiteds::toggle{ $configs:
         ensure  => $ensure,
         require => Package[ $packages ],
         before  => Exec[ 'ldap-srv-init' ],
-        notify  => Exec[ 'killall slapd || true' ],
+        notify  => Exec[ $exec_kill_slapd ],
       }
-      exec{ 'killall slapd || true':
+
+      exec{ $exec_kill_slapd:
         before      => Exec[ 'ldap-srv-init' ],
-        require     => Package[ $packages ],
         refreshonly => 'true'
       }
       exec{ 'ldap-srv-init':
@@ -165,6 +168,7 @@ define suiteds::server::openldap (
         require     => Exec[ 'ldap-dir-init' ],
         unless      => $exec_ldap_dir_is_pop,
       }
+
     }
     'absent','purged': {
       package{ $packages:

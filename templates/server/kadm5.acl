@@ -2,4 +2,4 @@
   config = scope.to_hash
   config = scope.parent.to_hash if ! config.has_key?( 'servers' )
 -%>
-e/<%= config['admin_user'] %>@<%= domain.to_s.uppercase %> *
+*/admin@<%= config['default_domain'].to_s.upcase %> *

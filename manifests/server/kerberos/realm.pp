@@ -2,36 +2,41 @@ define suiteds::server::kerberos::realm (
   $ensure         = $suiteds::config::ensure,
   $user           = $suiteds::config::root_user,
   $group          = $suiteds::config::root_group,
-  $krb_ldap_write = $suiteds::config::krb_ldap_write,
-  $krb_ldap_read  = $suiteds::config::krb_ldap_read,
   $krb_path       = $suiteds::config::krb_path,
+  $admin_user     = $suiteds::config::admin_user,
   $admin_password = $suiteds::config::admin_password,
   $exec_path      = $suiteds::config::exec_path
 ) {
+  $ldap_map       = $suiteds::config::ldap_map
+  $domain         = inline_template( '<%= name.to_s.downcase.strip %>' )
+  $base_dn        = inline_template( '<%= domain.split( "." ).map{ |part| part = "dc=" + part }.join( "," ) %>' )
+  $admin_ou       = inline_template( '<%= "ou=" + ldap_map.select{ |x| x.split( ":" ).at( 0 ).to_s.strip == "roles" }.at( 0 ).split( ":" ).at( 1 ).to_s.strip %>' )
+  $krb_ou         = inline_template( '<%= "ou=" + ldap_map.select{ |x| x.split( ":" ).at( 0 ).to_s.strip == "kerberos" }.at( 0 ).split( ":" ).at( 1 ).to_s.strip %>' )
+  $realm          = inline_template( '<%= name.to_s.upcase %>' )
+  $krb_write_user = $suiteds::config::krb_write_user
+  $krb_read_user  = $suiteds::config::krb_read_user
+  $krb_write_dn   = "cn=${krb_write_user},${admin_ou},${base_dn}"
+  $krb_read_dn    = "cn=${krb_read_user},${admin_ou},${base_dn}"
+  $secret_file    = "${krb_path}/${domain}.secret"
+  $keyfile        = "${krb_path}/${domain}.keyfile"
 
-  $temp_krb_path = $suiteds::config::krb_path
-  case inline_template( '<%= temp_krb_path.to_s.start_with?( "/" ) %>' ) {
-    'true':  { $krb_path = $temp_krb_path                }
-    default: { $krb_path = "${base_path}/$temp_krb_path" }
-  }
-
-  $db_mapping   = $suiteds::config::db_mapping
-  $domain       = inline_template( '<%= name.to_s.downcase.strip %>' )
-  $base_dn      = inline_template( '<%= domain.split( "." ).map{ |part| part = "dc=" + part }.join( "," ) %>' )
-  $admin_ou     = inline_template( '<%= "ou=" + db_mapping.select{ |x| x.split( ":" ).at( 0 ).to_s.strip == "admin" }.at( 0 ).split( ":" ).at( 4 ).to_s.strip %>' )
-  $krb_ou       = inline_template( '<%= "ou=" + db_mapping.select{ |x| x.split( ":" ).at( 0 ).to_s.strip == "kerberos" }.at( 0 ).split( ":" ).at( 4 ).to_s.strip %>' )
-  $realm        = inline_template( '<%= name.to_s.upcase %>' )
-  $krb_write_dn = "cn=${krb_ldap_write},${admin_ou},${base_dn}"
-  $secret_file  = "${krb_path}/${domain}.secret"
-  $secret       = inline_template( '<%= Array.new( 64 ){ rand( 256 ).chr }.join.unpack( "H*" ).join%>' )
-
-  $exec_krb_init    = "cat '${secret_file}' | kdb5_ldap_util -D '${krb_write_dn}' create -subtrees '${base_dn}' -r '${realm}' -s"
+  $exec_krb_init    = "cat '${secret_file}' '${secret_file}' '${secret_file}' | kdb5_ldap_util -D '${krb_write_dn}' create -subtrees '${base_dn}' -r '${realm}' -s"
   $exec_krb_is_init = "test -n \"`ldapsearch -Y EXTERNAL -H ldapi:/// -LLL -Q -b '${krb_ou},${base_dn}' '(krbPrincipalName=K/M@${realm})' dn`\""
+
+  $exec_key_add_write = "cat '${secret_file}' '${secret_file}' '${secret_file}' | kdb5_ldap_util -D '${krb_write_dn}' stashsrvpw -f $keyfile '${krb_write_dn}'"
+  $exec_key_add_read  = "cat '${secret_file}' '${secret_file}' '${secret_file}' | kdb5_ldap_util -D '${krb_write_dn}' stashsrvpw -f $keyfile '${krb_read_dn}'"
+  $exec_key_exists    = "test -f ${keyfile}"
 
   File{
     owner => $user,
     group => $group,
     mode  => 0600,
+  }
+  Exec{
+    path      => $exec_path,
+    user      => $user,
+    group     => $group,
+    logoutput => 'on_failure',
   }
     
   case $ensure {
@@ -40,11 +45,21 @@ define suiteds::server::kerberos::realm (
 
       exec{ "krb_init-${realm}":
         command   => $exec_krb_init,
-        path      => $exec_path,
-        user      => $user,
-        group     => $group,
-        logoutput => 'on_failure',
         unless    => $exec_krb_is_init,
+        require   => File[ "${krb_path}/${domain}.acl", $secret_file ],
+      }
+
+      exec{ "key_add_write-${realm}":
+        command     => $exec_key_add_write,
+        unless      => $exec_key_exists,
+        subscribe   => Exec[ "krb_init-${realm}" ],
+        notify      => Exec[ "key_add_read-${realm}" ],
+        refreshonly => 'true',
+      }
+
+      exec{ "key_add_read-${realm}":
+        command     => $exec_key_add_read,
+        refreshonly => 'true',
       }
     }
     'absent','purged': {
@@ -58,12 +73,10 @@ define suiteds::server::kerberos::realm (
   file{ "${krb_path}/${domain}.acl":
     ensure  => $file_ensure,
     content => template( 'suiteds/server/kadm5.acl' ),
-    before  => Exec[ "krb_init-${realm}" ],
   }
 
   file{ $secret_file:
     ensure  => $file_ensure,
-    content => inline_template( '<%= admin_password + "\n" + secret + "\n" + secret %>' ),
-    before  => Exec[ "krb_init-${realm}" ],
+    content => inline_template( '<%= admin_password + "\n" %>' ),
   }
 }
