@@ -76,10 +76,10 @@ define suiteds::server::openldap (
   $ldap_dir_pop_file  = "${misc_path}/directory-populate.ldif"
   $configs = [
     $suiteds::config::ldap_server_configs,
-    "present:absent:${ldap_user}:${ldap_group}:0600:server/server-init.ldif       :${ldap_srv_init_file}",
-    "present:absent:${ldap_user}:${ldap_group}:0600:server/server-populate.ldif   :${ldap_srv_pop_file} ",
-    "present:absent:${ldap_user}:${ldap_group}:0600:server/directory-init.ldif    :${ldap_dir_init_file}",
-    "present:absent:${ldap_user}:${ldap_group}:0600:server/directory-populate.ldif:${ldap_dir_pop_file} ",
+    "present:absent:${ldap_user}:${ldap_group}:0600:openldap/server/server-init.ldif       :${ldap_srv_init_file}",
+    "present:absent:${ldap_user}:${ldap_group}:0600:openldap/server/server-populate.ldif   :${ldap_srv_pop_file} ",
+    "present:absent:${ldap_user}:${ldap_group}:0600:openldap/server/directory-init.ldif    :${ldap_dir_init_file}",
+    "present:absent:${ldap_user}:${ldap_group}:0600:openldap/server/directory-populate.ldif:${ldap_dir_pop_file} ",
   ]
   $base_dn      = inline_template( '<%= domain.to_s.downcase.split( "." ).map{ |part| part = "dc=" + part }.join( "," ) %>' )
 

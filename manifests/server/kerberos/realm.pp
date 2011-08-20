@@ -72,7 +72,7 @@ define suiteds::server::kerberos::realm (
 
   file{ "${krb_path}/${domain}.acl":
     ensure  => $file_ensure,
-    content => template( 'suiteds/server/kadm5.acl' ),
+    content => template( 'suiteds/kerberos/server/kadm5.acl' ),
   }
 
   file{ $secret_file:

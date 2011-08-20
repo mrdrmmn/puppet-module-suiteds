@@ -69,7 +69,7 @@ define suiteds::server::kerberos (
     require => Directory[ $krb_path ],
   }
 
-  suiteds::toggle{ $configs:
+  suiteds::toggle{ [ $configs ]:
     ensure  => $ensure,
     require => Package[ $packages ],
     before  => Suiteds::Server::Kerberos::Realm[ $domains ],

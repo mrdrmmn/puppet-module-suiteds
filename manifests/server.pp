@@ -157,6 +157,23 @@ define suiteds::server (
     require               => Suiteds::Server::Openldap[ 'suiteds::server::openldap' ],
   }
 
+  suiteds::server::freeradius{ 'suiteds::server::freeradius':
+    ensure  => $ensure,
+    servers               => $servers,
+    domains               => $domains,
+    default_domain        => $default_domain,
+    admin_user            => $admin_user,
+    admin_password        => $admin_password,
+    base_path             => $base_path,
+    config_path           => $config_path,
+    misc_path             => $misc_path,
+    exec_path             => $exec_path,
+    pam_min_uid           => $pam_min_uid,
+    pam_max_uid           => $pam_max_uid,
+    log_level             => $log_level,
+    require => Suiteds::Server::Kerberos[ 'suiteds::server::kerberos' ],
+  }
+
   directory{ $paths:
     ensure  => $ensure,
     mode    => '0755',

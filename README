@@ -35,3 +35,11 @@ simple as possible.  Once complete, it will do all of the following:
 
 * Provide configuration information to Mac OS X clients to make configuring
   them extremely easy.
+
+Until recently, I've been focusing on makeing this all work under ubuntu.
+However, I've just recently discoverd that to support PEAP authentication via
+radius, I must store the NTLM hashes in the directory along side the existing
+password hash.  There is an overlay for slapd to automatically keep these both
+in sync, but ubuntu has decided that they would rather go to the effort of
+removing this bit from their packages.  So now I am shifting my focus to Debian
+and will add support for rpm based distros later.

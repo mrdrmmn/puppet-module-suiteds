@@ -21,6 +21,7 @@ class suiteds::config::default {
   $misc_path      = 'misc'
   $ldap_path      = 'ldap'
   $krb_path       = 'kerberos'
+  $radius_path    = 'radius'
   $ldap_pid_file  = 'slapd.pid'
 
   # This controls how we handle ssl certificate verification.  Valid values
@@ -92,6 +93,7 @@ class suiteds::config::default {
     'samba.ldif',
     'apple.ldif',
     'kerberos.ldif',
+    'radius.ldif',
   ]
 
   # [0] - A "friendly" name for this entry.
@@ -151,8 +153,10 @@ class suiteds::config::default {
     'roles    :Roles    :simpleSecurityObject,organizationalRole                                                  :                 :         :                                   :one:                          ',
     'access   :Access   :groupOfNames                                                                             :                 :         :                                   :one:                          ',
     'config   :Config   :                                                                                         :                 :         :                                   :one:                          ',
+    'radius   :Radius   :                                                                                         :                 :         :                                   :   :                          ',
   ]
-  $host_access_groups = 'ops'
+  $host_access_groups   = 'ops'
+  $radius_access_groups = 'radius'
 
   # # # # # # # # # # # # # # # # # # # #
   # Kerberos specific values
@@ -166,8 +170,9 @@ class suiteds::config::default {
   $ldap_bind_user  = 'ldap-bind'
 
   $ldap_access_groups = [ 
-    'ldap-admin',
-    'everyone',
+    'ldap-admin:ldap-admin',
+    'radius-user:radius-user',
+    'everyone:everyone',
   ]
 
   # [0] - A "friendly" name for this entry. DO NOT CHANGE!

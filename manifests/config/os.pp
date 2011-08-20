@@ -1,12 +1,14 @@
 class suiteds::config::os inherits suiteds::config::default {
   case $operatingsystem {
     'ubuntu','debian': {
-      $ldap_user   = 'openldap'
-      $ldap_group  = 'openldap'
-      $root_user   = 'root'
-      $root_group  = 'root'
-      $nslcd_user  = 'nslcd'
-      $nslcd_group = 'nslcd'
+      $root_user    = 'root'
+      $root_group   = 'root'
+      $ldap_user    = 'openldap'
+      $ldap_group   = 'openldap'
+      $nslcd_user   = 'nslcd'
+      $nslcd_group  = 'nslcd'
+      $radius_user  = 'freerad'
+      $radius_group = 'freerad'
       $ssl_cipher_suite = 'SECURE256:!AES-128-CBC:!ARCFOUR-128:!CAMELLIA-128-CBC:!3DES-CBC:!CAMELLIA-128-CBC'
 
       $ldap_server_packages = [
@@ -17,9 +19,9 @@ class suiteds::config::os inherits suiteds::config::default {
         'slapd',
       ]
       $ldap_server_configs  = [
-        "present:absent:${root_user}:${root_group}:0644:server/debian/slapd   :/etc/default/slapd       ",
-        "present:absent:${root_user}:${root_group}:0644:server/ldap.conf      :/etc/ldap/ldap.conf      ",
-        "present:absent:${root_user}:${root_group}:0644:server/macodconfig.xml:/etc/ldap/mackdconfig.xml",
+        "present:absent:${root_user}:${root_group}:0644:openldap/server/debian/slapd      :/etc/default/slapd          ",
+        "present:absent:${root_user}:${root_group}:0644:openldap/server/ldap.conf         :/etc/ldap/ldap.conf         ",
+        "present:absent:${root_user}:${root_group}:0644:openldap/server/macosxodconfig.xml:/etc/ldap/macosxodconfig.xml",
       ]
 
       $krb_server_packages = [
@@ -32,7 +34,21 @@ class suiteds::config::os inherits suiteds::config::default {
         'krb5-kdc',
       ]
       $krb_server_configs = [
-        "present:absent:${root_user}:${root_group}:0644:server/kdc.conf    :/etc/krb5kdc/kdc.conf",
+        "present:absent:${root_user}:${root_group}:0644:kerberos/server/kdc.conf    :/etc/krb5kdc/kdc.conf",
+      ]
+
+      $radius_server_packages = [
+        'freeradius',
+        'freeradius-ldap',
+        'freeradius-krb5',
+      ]
+      $radius_server_services = [
+        'freeradius',
+      ]
+      $radius_server_configs = [
+        "present:absent:${root_user}:${radius_group}:0640:freeradius/server/radiusd.conf:/etc/freeradius/radiusd.conf",
+        "present:absent:${root_user}:${radius_group}:0640:freeradius/server/clients.conf :clients.conf",
+        "present:absent:${root_user}:${root_group}  :0644:freeradius/server/users        :users       ",
       ]
 
       $ldap_client_packages = [
@@ -46,10 +62,10 @@ class suiteds::config::os inherits suiteds::config::default {
         'nslcd',
       ]
       $ldap_client_configs  = [
-        "present:present:${root_user}:${root_group} :0644:client/nsswitch.conf:/etc/nsswitch.conf",
-        "present:absent :${root_user}:${root_group} :0644:client/ldap.conf    :/etc/ldap.conf    ",
-        "present:absent :${root_user}:${root_group} :0600:client/ldap.secret  :/etc/ldap.secret  ",
-        "present:absent :${root_user}:${nslcd_group}:0640:client/nslcd.conf   :/etc/nslcd.conf   ",
+        "present:present:${root_user}:${root_group} :0644:openldap/client/nsswitch.conf:/etc/nsswitch.conf",
+        "present:absent :${root_user}:${root_group} :0644:openldap/client/ldap.conf    :/etc/ldap.conf    ",
+        "present:absent :${root_user}:${root_group} :0600:openldap/client/ldap.secret  :/etc/ldap.secret  ",
+        "present:absent :${root_user}:${nslcd_group}:0640:openldap/client/nslcd.conf   :/etc/nslcd.conf   ",
       ]
 
       $krb_client_packages = [
@@ -57,9 +73,12 @@ class suiteds::config::os inherits suiteds::config::default {
         'libpam-krb5',
       ]
       $krb_client_configs = [
-        "present:absent:${root_user}:${root_group}:0644:client/krb5.conf   :/etc/krb5.conf       ",
+        "present:absent:${root_user}:${root_group}:0644:kerberos/client/krb5.conf   :/etc/krb5.conf       ",
       ]
 
+      $radius_client_packages = [
+        'freeradius-utils',
+      ]
     }
 
     'linux','centos','fedora': {
@@ -77,8 +96,8 @@ class suiteds::config::os inherits suiteds::config::default {
         'slapd'
       ]
       $ldap_server_configs  = [
-        "present:absent:${root_user}:${root_group}:0644:server/redhat/ldap:/etc/sysconfig/ldap    ",
-        "present:absent:${root_user}:${root_group}:0644:server/ldap.conf  :/etc/openldap/ldap.conf",
+        "present:absent:${root_user}:${root_group}:0644:openldap/server/redhat/ldap:/etc/sysconfig/ldap    ",
+        "present:absent:${root_user}:${root_group}:0644:openldap/server/ldap.conf  :/etc/openldap/ldap.conf",
       ]
 
       $ldap_client_packages = [
@@ -90,10 +109,10 @@ class suiteds::config::os inherits suiteds::config::default {
         'nslcd',
       ]
       $ldap_client_configs = [
-        "present:present:${root_user}:${root_group}:0644:client/nsswitch.conf:/etc/nsswitch.conf",
-        "present:absent :${root_user}:${root_group}:0644:client/ldap.conf    :/etc/pam_ldap.conf",
-        "present:absent :${root_user}:${root_group}:0600:client/ldap.secret  :/etc/ldap.secret  ",
-        "present:absent :${root_user}:${root_group}:0600:client/nslcd.conf   :/etc/nslcd.conf   ",
+        "present:present:${root_user}:${root_group}:0644:openldap/client/nsswitch.conf:/etc/nsswitch.conf",
+        "present:absent :${root_user}:${root_group}:0644:openldap/client/ldap.conf    :/etc/pam_ldap.conf",
+        "present:absent :${root_user}:${root_group}:0600:openldap/client/ldap.secret  :/etc/ldap.secret  ",
+        "present:absent :${root_user}:${root_group}:0600:openldap/client/nslcd.conf   :/etc/nslcd.conf   ",
       ]
     }
     default: {

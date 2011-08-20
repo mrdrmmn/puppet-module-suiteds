@@ -69,6 +69,7 @@ objectClass: olcModuleList
 olcModuleLoad: back_hdb
 olcModuleLoad: syncprov
 olcModuleLoad: memberof
+olcModuleLoad: unique
 structuralObjectClass: olcModuleList
 
 dn: olcBackend=hdb,cn=config

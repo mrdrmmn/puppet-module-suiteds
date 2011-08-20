@@ -1,5 +1,6 @@
 define suiteds::toggle (
-  $ensure
+  $ensure,
+  $path = undef
 ) {
   $present = inline_template( '<%= name.split(":").at(0).to_s.strip %>' )
   $absent  = inline_template( '<%= name.split(":").at(1).to_s.strip %>' )
@@ -8,6 +9,11 @@ define suiteds::toggle (
   $mode    = inline_template( '<%= name.split(":").at(4).to_s.strip %>' )
   $tmpl    = inline_template( '<%= name.split(":").at(5).to_s.strip %>' )
   $file    = inline_template( '<%= name.split(":").at(6).to_s.strip %>' )
+
+  $file_path = inline_template( '<%= file.to_s.start_with?( "/" ) %>' ) ? {
+    'true'  => $file,
+    default => "${path}/${file}"
+  }
 
   case $ensure {
     'present': {
@@ -21,7 +27,7 @@ define suiteds::toggle (
     }
   }
 
-  file{ $file:
+  file{ $file_path:
     ensure  => $file_ensure,
     owner   => $owner,
     group   => $group,

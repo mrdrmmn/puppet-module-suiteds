@@ -194,7 +194,7 @@ cn: automountMap
 dn: ou=macosxodconfig,cn=config,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: organizationalUnit
 ou: macosxodconfig
-description:: <%= Base64.encode64( scope.function_template( 'suiteds/server/macodconfig.xml' ) ).split("\n").join("") %>
+description:: <%= Base64.encode64( scope.function_template( 'suiteds/openldap/server/macosxodconfig.xml' ) ).split("\n").join("") %>
 
 dn: cn=presets_computers,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
