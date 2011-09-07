@@ -21,7 +21,7 @@ define suiteds::client::kerberos (
   $services           = $suiteds::config::krb_client_services
   $configs            = $suiteds::config::krb_client_configs
   $ldap_map           = $suiteds::config::ldap_map
-  $ldap_access_groups = $suiteds::config::ldap_access_groups
+  $ldap_roles         = $suiteds::config::ldap_roles
   $root_user          = $suiteds::config::root_user
   $root_group         = $suiteds::config::root_group
   $krb_read_user      = $suiteds::config::krb_read_user

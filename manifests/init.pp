@@ -32,6 +32,7 @@ define suiteds (
   $ldap_version          = undef,
   $ldap_port             = undef,
   $ldaps_port            = undef,
+  $ldap_ssh_roles        = undef,
   $bind_policy           = undef,
   $search_timelimit      = undef,
   $bind_timelimit        = undef,
@@ -127,6 +128,7 @@ define suiteds (
   $config_ldap_version          = $ldap_version          ? { default => $ldap_version,          '' => $suiteds::config::ldap_version          }
   $config_ldap_port             = $ldap_port             ? { default => $ldap_port,             '' => $suiteds::config::ldap_port             }
   $config_ldaps_port            = $ldaps_port            ? { default => $ldaps_port,            '' => $suiteds::config::ldaps_port            }
+  $config_ldap_ssh_roles        = $ldap_ssh_roles        ? { default => $ldap_ssh_roles,        '' => $suiteds::config::ldap_ssh_roles        }
   $config_ldap_bind_policy      = $ldap_bind_policy      ? { default => $ldap_bind_policy,      '' => $suiteds::config::ldap_bind_policy      }
   $config_search_timelimit      = $search_timelimit      ? { default => $search_timelimit,      '' => $suiteds::config::search_timelimit      }
   $config_bind_timelimit        = $bind_timelimit        ? { default => $bind_timelimit,        '' => $suiteds::config::bind_timelimit        }

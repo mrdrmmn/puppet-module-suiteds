@@ -16,6 +16,15 @@
     }
   end
 
+  roles = {}
+  config['ldap_roles'].to_a.flatten.map do |line|
+    role, name, desc = line.split( ':' ).map{ |x| x.to_s.strip }
+    roles[ role ] = {
+      'name' => name,
+      'desc' => desc || name,
+    }
+  end
+
   require 'base64'
   require 'securerandom'
 
@@ -54,54 +63,21 @@ objectClass: top
 description: <%= value['desc'] %>
 
 <%
-  if key == 'access'
-    config['ldap_access_groups'].to_a.flatten.each do |group|
+      if key == 'roles'
+        roles.values.each do |role|
 -%>
-dn: cn=<%= group %>,ou=<%= value['ou'] %>,<%= base_dn %>
+dn: cn=<%= role['name'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
+objectClass: simpleSecurityObject
 objectClass: groupOfNames
-cn: <%= group %>
+cn: <%= role['name'] %>
+description: <%= role['desc'] %>
+userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
 member: <%= base_dn %>
 
 <%
-    end
-  elsif key == 'roles'
+        end
+      elsif key == 'macosx'
 -%>
-dn: cn=<%= config['admin_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: <%= config['admin_user'] %>
-description: OpenLDAP Admin Account
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-
-dn: cn=<%= config['ldap_admin_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: <%= config['ldap_admin_user'] %>
-description: OpenLDAP Root Account
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-
-dn: cn=<%= config['ldap_bind_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: <%= config['ldap_bind_user'] %>
-description: OpenLDAP Bind Account
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-
-dn: cn=<%= config['krb_read_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: <%= config['krb_read_user'] %>
-description: Kerberos Read Account
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-
-dn: cn=<%= config['krb_write_user'] %>,ou=<%= value['ou'] %>,<%= base_dn %>
-objectClass: simpleSecurityObject
-objectClass: organizationalRole
-cn: <%= config['krb_write_user'] %>
-description: Kerberos Write Account
-userPassword: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
-
-<% elsif key == 'macosx' -%>
 dn: cn=accesscontrols,ou=<%= value['ou'] %>,<%= base_dn %>
 objectClass: container
 cn: accesscontrols
@@ -230,8 +206,8 @@ objectClass: apple-configuration
 objectClass: top
 cn: CollabServices
 
-<% end -%>
 <%
+      end
     end
   end
 -%>

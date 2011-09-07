@@ -148,11 +148,10 @@ class suiteds::config::default {
     'netgroup :Netgroup :nisNetgroup                                                                              :netgroup         :nis      :ldap [NOTFOUND=return] db nis      :one:                          ',
     'machines :Machines :                                                                                         :                 :         :                                   :one:                          ',
     'mounts   :Mounts   :                                                                                         :                 :         :                                   :one:                          ',
-    'macosx   :MacOSX   :organizationalUnit                                                                       :                 :         :                                   :one:                          ',
-    'kerberos :Kerberos :                                                                                         :                 :         :                                   :one:                          ',
-    'roles    :Roles    :simpleSecurityObject,organizationalRole                                                  :                 :         :                                   :one:                          ',
-    'access   :Access   :groupOfNames                                                                             :                 :         :                                   :one:                          ',
-    'config   :Config   :                                                                                         :                 :         :                                   :one:                          ',
+    'macosx   :MacOSX   :organizationalUnit                                                                       :                 :         :                                   :   :                          ',
+    'kerberos :Kerberos :                                                                                         :                 :         :                                   :   :                          ',
+    'roles    :Roles    :simpleSecurityObject,groupOfNames                                                        :                 :         :                                   :   :                          ',
+    'config   :Config   :                                                                                         :                 :         :                                   :   :                          ',
     'radius   :Radius   :                                                                                         :                 :         :                                   :   :                          ',
   ]
   $host_access_groups   = 'ops'
@@ -169,23 +168,19 @@ class suiteds::config::default {
   $ldap_admin_user = 'ldap-admin'
   $ldap_bind_user  = 'ldap-bind'
 
-  $ldap_access_groups = [ 
-    'ldap-admin:ldap-admin',
-    'radius-user:radius-user',
-    'everyone:everyone',
+  $ldap_roles = [ 
+    'ldap-admin :ldap-admin :LDAP Administrators  ',
+    'ssh-user   :ssh-user   :SSH Users            ',
+    'krb-read   :krb-read   :Kerberos Read Access ',
+    'krb-write  :krb-write  :Kerberos Write Access',
+    'radius-user:radius-user:Radius Users         ',
+    'everyone   :everyone   :Everyone             ',
   ]
+  $ldap_ssh_roles = [ 'ssh-user' ]
 
   # [0] - A "friendly" name for this entry. DO NOT CHANGE!
   # [1] - The name of the access group associated with the friendly name.
   # [2] - Comma separated list of roles that should be associated with the access group.
-  $ldap_roles = [
-    'ldap-admin:ldap-admin:ldap-admin',
-    'ldap-bind :ldap-bind :          ',
-    'krb-read  :krb-read  :          ',
-    'krb-write :krb-write :          ',
-    'everyone  :          :everyone  ',
-  ]
-
   $ldap_acls = [
     'all-manage:*       :manage',
     'all-read  :*       :read  ',

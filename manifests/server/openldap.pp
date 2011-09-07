@@ -18,6 +18,7 @@ define suiteds::server::openldap (
   $ldap_version          = $suiteds::config::ldap_version,
   $ldap_port             = $suiteds::config::ldap_port,
   $ldaps_port            = $suiteds::config::ldaps_port,
+  $ldap_ssh_roles        = $suiteds::config::ldap_ssh_roles,
   $bind_policy           = $suiteds::config::bind_policy,
   $search_timelimit      = $suiteds::config::search_timelimit,
   $bind_timelimit        = $suiteds::config::bind_timelimit,
@@ -69,6 +70,8 @@ define suiteds::server::openldap (
   $krb_write_user  = $suiteds::config::krb_write_user
   $ldap_admin_user = $suiteds::config::ldap_admin_user
   $ldap_bind_user  = $suiteds::config::ldap_bind_user
+  $ldap_roles      = $suiteds::config::ldap_roles
+  $ldap_smbk5pwd   = $suiteds::config::ldap_smbk5pwd
 
   $ldap_srv_init_file = "${misc_path}/server-init.ldif"
   $ldap_srv_pop_file  = "${misc_path}/server-populate.ldif"
@@ -126,6 +129,13 @@ define suiteds::server::openldap (
         ensure  => $ensure,
         require => Suiteds::Server::Mk_ldap_dir_paths[ 'config', $domains ],
         notify  => Exec[ $exec_kill_slapd ],
+      }
+      if( $ldap_smbk5pwd != '' and !defined( Package[ $ldap_smbk5pwd ] ) ) {
+        package{ $ldap_smbk5pwd:
+          ensure  => $ensure,
+          require => Package[ $packages ],
+          before  => Exec[ 'ldap-srv-init' ],
+        }
       }
       suiteds::toggle{ $configs:
         ensure  => $ensure,

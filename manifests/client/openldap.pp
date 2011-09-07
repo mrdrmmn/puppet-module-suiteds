@@ -58,7 +58,7 @@ define suiteds::client::openldap (
   $services           = $suiteds::config::ldap_client_services
   $configs            = $suiteds::config::ldap_client_configs
   $ldap_map           = $suiteds::config::ldap_map
-  $ldap_access_groups = $suiteds::config::ldap_access_groups
+  $ldap_roles         = $suiteds::config::ldap_roles
 
   package{ $packages:
     ensure => $ensure,

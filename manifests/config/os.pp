@@ -1,6 +1,38 @@
 class suiteds::config::os inherits suiteds::config::default {
+  # On operatingsystems that have the smbk5pwd overly for ldap, we want to
+  # install and configure it.
+
+  case $operatingsystem {
+    'debian': {
+      if ( versioncmp( $operatingsystemrelease, 6 ) >= 0 ) {
+        $ldap_smbk5pwd = 'slapd-smbk5pwd'
+      }
+      if ( versioncmp( $operatingsystemrelease, 5 ) < 0 ) {
+        fail( "${operatingsystem} less than version 5 (lenny) is not currently supported" )
+      }
+    }
+    'ubuntu': {
+      if ( versioncmp( $operatingsystemrelease, 8 ) < 0 ) {
+        fail( "${operatingsystem} less than version 8 (hardy) is not currently supported" )
+      }
+    }
+    'fedora': {
+      $ldap_smbk5pwd = 'openldap-servers'
+      if ( versioncmp( $operatingsystemrelease, 9 ) < 0 ) {
+        fail( "${operatingsystem} less than version 9 is not currently supported" )
+      }
+    }
+    'redhat','centos': {
+      $ldap_smbk5pwd = 'openldap-servers'
+      if ( versioncmp( $operatingsystemrelease, 6 ) < 0 ) {
+        fail( "${operatingsystem} less than version 9 is not currently supported" )
+      }
+    }
+  }
+
   case $operatingsystem {
     'ubuntu','debian': {
+
       $root_user    = 'root'
       $root_group   = 'root'
       $ldap_user    = 'openldap'
@@ -10,6 +42,7 @@ class suiteds::config::os inherits suiteds::config::default {
       $radius_user  = 'freerad'
       $radius_group = 'freerad'
       $ssl_cipher_suite = 'SECURE256:!AES-128-CBC:!ARCFOUR-128:!CAMELLIA-128-CBC:!3DES-CBC:!CAMELLIA-128-CBC'
+
 
       $ldap_server_packages = [
         'slapd',

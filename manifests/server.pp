@@ -16,6 +16,7 @@ define suiteds::server (
   $ldap_version          = $suiteds::config::ldap_version,
   $ldap_port             = $suiteds::config::ldap_port,
   $ldaps_port            = $suiteds::config::ldaps_port,
+  $ldap_ssh_roles        = $suiteds::config::ldap_ssh_roles,
   $bind_policy           = $suiteds::config::bind_policy,
   $search_timelimit      = $suiteds::config::search_timelimit,
   $bind_timelimit        = $suiteds::config::bind_timelimit,

@@ -54,7 +54,7 @@ define suiteds::server::freeradius (
   $ldap_map        = $suiteds::config::ldap_map
   $ldap_admin_user = $suiteds::config::ldap_admin_user
   $ldap_bind_user  = $suiteds::config::ldap_bind_user
-  $ldap_access_groups = $suiteds::config::ldap_access_groups
+  $ldap_roles      = $suiteds::config::ldap_roles
 
   # Make sure our paths are fully qualified.
   $temp_radius_path = $suiteds::config::radius_path

@@ -16,6 +16,15 @@
     }
   end
 
+  roles = {}
+  config['ldap_roles'].to_a.flatten.map do |line|
+    role, name, desc = line.split( ':' ).map{ |x| x.to_s.strip }
+    roles[ role ] = {
+      'name' => name,
+      'desc' => desc || name,
+    }
+  end
+
   db_id = 0
   [ config['domains'] ].flatten.each do |domain|
     base_dn = domain.split( '.' ).map{ |part| part = 'dc=' + part }.join( ',' )
@@ -36,12 +45,12 @@ olcRootPW: <%= scope.function_template( 'suiteds/encrypt-password.erb' ) %>
 #olcAuthzRegexp: "uid=host/([^/]*),cn=<%= domain %>,cn=gssapi,cn=auth" "cn=$1,ou=<%= map_hash['hosts']['ou'] + ',' + base_dn %>"
 olcAccess: to *
   by dn.exact=gidNumber=0+uidNumber=0,cn=peercred,cn=external,cn=auth manage
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['admin_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> manage
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + roles['ldap-admin']['name'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> manage
   by * break
 olcAccess: to attrs=userPassword,shadowLastChange,krbPrincipalKey,userPKCS12
   by ssf=<%= config['ssl_minimum'] %> self write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_write_user'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
-  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + config['krb_read_user']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + roles['krb-write']['name'] + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> write
+  by ssf=<%= config['ssl_minimum'] %> dn.exact=<%= 'cn=' + roles['krb-read']['name']  + ',ou=' + map_hash['roles']['ou'] + ',' + base_dn %> read
   by ssf=<%= config['ssl_minimum'] %> anonymous auth
   by * none
 olcAccess: to dn.one="<%= 'ou=' + map_hash['users']['ou'] + ',' + base_dn %>"
